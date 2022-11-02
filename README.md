@@ -58,6 +58,7 @@ Tras seguir estos pasos, hay que desconectar la iso de la maquina virtual y rein
 5.	Luego indicamos **y** para continuar.
 
 Para este momento, se debería obtener un resultado similar a este:
+
 ![Configuración de interfaces pfSense](https://thumbs2.imgbox.com/18/a5/Qy9VOTB0_t.png)
 
 En este momento, WAN y LAN están en el mismo rango de IP's, para cambiar esto hacemos lo siguiente:
@@ -72,6 +73,7 @@ En este momento, WAN y LAN están en el mismo rango de IP's, para cambiar esto h
 6.	Por último a la opción de configurar HTTP como el protocolo del webConfigurator se indica **y**.
 
 Al seguir el procedimiento anterior se obtiene:
+
 ![Configuración de interfaces pfSense](https://thumbs2.imgbox.com/d8/fd/KeD0yNYT_t.png)
 
 Ahora el pfSense ya es accesible desde la red *LAN*.
@@ -79,18 +81,22 @@ Ahora el pfSense ya es accesible desde la red *LAN*.
 ## Configurar el pfSense
 
 En el apartado de configuración de *Red* de la máquina Kali Linux, hay que selecciónar la red interna **LAN**.
+
 ![Kali Linux configuración de Red](https://thumbs2.imgbox.com/01/4e/A4U2XhRA_t.png)
 
 Para configurar  el pfSense es necesario acceder a la interfaz web en la IP que hemos asignado a la interfaz LAN (*192.168.100.1*).
+
 ![Login de pfSense](https://thumbs2.imgbox.com/46/ac/BKLGghBK_t.png)
 
 Las credenciales de acceso son: **admin**, **pfsense**. En las siguientes capturas se muestra la configuración inicial del pfSense.
+
 ![Primer paso de configuracion pfSense](https://thumbs2.imgbox.com/d5/dc/57L1JWby_t.png)
 
 ![Segundo paso configuración pfSense](https://thumbs2.imgbox.com/c9/7d/mjWZgkza_t.png)
 
 ![enter image description here](https://thumbs2.imgbox.com/03/51/sniiKli9_t.png)
 Es importante desmarcar las siguientes dos casillas
+
 ![enter image description here](https://thumbs2.imgbox.com/c2/c3/vmsMRSHh_t.png)
 
 Posteriormente se deben habilitar las demás interfaces.
@@ -113,19 +119,25 @@ A continuación, se debe configurar el servidor DHCP para servir IPs en la red D
 Una vez se habilita el servidor DHCP para la red DMZ, hay que indicar el rango de IPs, los servidores DNS y la puerta de enlace.
 
 ![Rango de IPs](https://thumbs2.imgbox.com/7c/31/coQWjzRB_t.png)
+
 ![Servidores DNS de la DMZ](https://thumbs2.imgbox.com/4e/2d/GGR639AX_t.png)
+
 ![Gateway DMZ](https://thumbs2.imgbox.com/ec/29/fHB8wqyr_t.png)
 
 En este momento, no se tiene acceso a internet desde la red DMZ, porque no se ha creado ninguna regla del Firewall de pfSense, por lo cual está bloqueando cualquier petición. Para permitir la conexión a internet hay que hacer lo siguiente:
 
 Se crea un separador para mantener un orden con las próximas reglas:
+
 ![separador firewall](https://thumbs2.imgbox.com/a6/66/0Px6CThK_t.png)
 
 Es necesario crear un alias del Firewall que incluya los puertos, hosts o URLs que queramos incluir en alguna regla.
+
 ![enter image description here](https://thumbs2.imgbox.com/ef/ae/A27SF2l1_t.png)
 
 Ahora sí es posible crear la regla que permita el acceso a Internet.
+
 ![enter image description here](https://thumbs2.imgbox.com/45/e8/pFAdCMwP_t.png)
+
 ![enter image description here](https://thumbs2.imgbox.com/b2/34/WabjPBBe_t.png)
 
 Además hay que crear otra relga que permita las peticiones al DNS. Para esto es posible duplicar la regla anterior, cambiar TCP por TPC/UDP y en los puertos de destino seleccionar los de DNS(53).
@@ -187,6 +199,7 @@ Una vez teniendo el packete, hay que crear una CA (Certificate Authority) local 
 Datos a rellenar:
 
 ![enter image description here](https://thumbs2.imgbox.com/a3/4d/50CdjRQi_t.png)
+
 ![enter image description here](https://thumbs2.imgbox.com/50/b7/HymK28LL_t.png)
 
 ### Crear certificado para la VPN
@@ -198,6 +211,7 @@ Luego, en la pestaña de **Certificates**, hay que añadir un nuevo certificado 
 Debe contener la siguiente información:
 
 ![enter image description here](https://thumbs2.imgbox.com/2c/13/VFxXpIY8_t.png)
+
 ![enter image description here](https://thumbs2.imgbox.com/12/29/yTI9SV3R_t.png)
 Es importante seleccionar *Server Certificate* en la sección de **Certificate Type**.
 
@@ -208,13 +222,17 @@ Ya teniendo el certificado autofirmado, es posible crear la VPN.
 Para hacer la configuración, hay que entrar al apartado **OpenVPN**, en la pestaña de **Servers** añadir uno nuevo y rellenar la información de la siguiente forma:
 
 *Ubicación de OpenVPN*
+
 ![enter image description here](https://thumbs2.imgbox.com/6a/1a/rqMbERnx_t.png)
 
 ![enter image description here](https://thumbs2.imgbox.com/73/7b/vj4PIbXA_t.png)
+
 ![enter image description here](https://thumbs2.imgbox.com/3e/bd/YWAYHXHO_t.png)
  
  En la casilla de **Hardware Crypto**, hay que seleccionar nuestro dispositivo de criptografía interno, para un rendimiento óptimo.
+ 
 ![enter image description here](https://thumbs2.imgbox.com/c4/d0/wI12br7b_t.png)
+
 ![enter image description here](https://thumbs2.imgbox.com/96/f8/I5mh3Xrf_t.png)
 
 Ya teniendo el OpenVPN configurado, hay que crear una regla en el Firewall, para que deje pasar el tráfico de este, que anteriormente asignamos al puerto 9458.
@@ -224,11 +242,13 @@ Ya teniendo el OpenVPN configurado, hay que crear una regla en el Firewall, para
 Para esto hay que crear una regla en la interfaz *WAN* que permita el tráfico al Firewall por el puerto 9458.
 
 ![enter image description here](https://thumbs2.imgbox.com/0c/b6/pMIi2Swi_t.png)
+
 ![enter image description here](https://thumbs2.imgbox.com/3c/44/LMlddZRM_t.png)
 
 Contenido de la regla:
 
 ![enter image description here](https://thumbs2.imgbox.com/84/ec/m8r2fLqB_t.png)
+
 ![enter image description here](https://thumbs2.imgbox.com/a2/3a/bIsczUoX_t.png)
 
 Ahora, en la pestaña de **OpenVPN** dentro de las reglas del Firewall, hay que crear una que permita todo el tráfico por el protocolo IPv4 TCP. Esta es una regla muy insegura, y se usa solo con fines de hacer pruebas.
@@ -246,6 +266,7 @@ Para esta estructura, se deben crear al menos dos usuarios: *elk* y *windows*, q
 Hay que elegir un nombre de usuario y una contraseña, es muy importante seleccionar la casilla que dice *Click to create a user certificate*, para certificar con nuestra CA interna al nuevo usuario.
 
 ![enter image description here](https://thumbs2.imgbox.com/90/64/31V1WjYL_t.png)
+
 ![enter image description here](https://thumbs2.imgbox.com/ef/17/LbdjvvnD_t.png)
 
 Siguiendo el anterior ejemplo se crean los usuarios *elk* y *windows*.
@@ -261,6 +282,7 @@ Para conectar las dos máquinas a la VPN, primero hay que descargar los archivos
 ![enter image description here](https://thumbs2.imgbox.com/e4/9f/JIPiVvFQ_t.png)
 
 Se debe seleccionar la opción de *Most Clients*.
+
 ![enter image description here](https://thumbs2.imgbox.com/d6/e0/oy4KqDJF_t.png)
 
 #### Conectar clientes
@@ -355,7 +377,8 @@ A continuación los pasos para configurar el Elastic y conectarlo con el Windows
 5.  Al guardar la configuración se debe seleccionar la opción de *Añadir un agente ahora*, se desplegará una ventana donde hay que entrar a la pestaña de **Run standalone** y de allí copiar al portapapeles la configuración del agente.
 
 	![enter image description here](https://thumbs2.imgbox.com/bd/c0/EDnBOV7s_t.png)
-![enter image description here](https://thumbs2.imgbox.com/c5/94/VbHwNC4K_t.png)
+	
+	![enter image description here](https://thumbs2.imgbox.com/c5/94/VbHwNC4K_t.png)
 
 ### Configurar el agente de Windows
 
@@ -364,6 +387,7 @@ Para hacer la conexión, en windows hay que descargar el *agente de elastic*, de
 Posteriormente, se debe descomprimir el *.zip*, y abrir el **elastic-agent.yml** con algún editor de texto. En este archivo hay que cambiar tres cosas:
 
 1. **hosts**: Hay que cambiar el que viene por defecto, y poner la IP que la VPN le asignó al Kali (es la que pertenece a la interfaz *tun*).
+
 	![enter image description here](https://thumbs2.imgbox.com/8f/f7/ank1XrkM_t.png)
 
 2. **username**: Se debe poner el usuario **elastic**.
