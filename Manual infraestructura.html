@@ -1,0 +1,315 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manual infraestructura</title>
+  <link rel="stylesheet" href="https://stackedit.io/style.css" />
+</head>
+
+<body class="stackedit">
+  <div class="stackedit__html"><h1 id="manual-infraestructura-pfsense">Manual Infraestructura pfSense</h1>
+<p>En el siguiente esquema se muestra la infraestructura que se montará siguiendo el presente manual.</p>
+<p><img src="https://thumbs2.imgbox.com/77/fe/GjdPIdeV_t.png" alt="Infrastructure Scheme"></p>
+<p>Esta infraestructura está conformada por:</p>
+<ul>
+<li>Un <strong>Firewall</strong> montado en <em>pfSense</em>.</li>
+<li><strong>Tres redes</strong> desprendidas a partir del Firewall: LAN, DMZ y DMZ2. A cada una de estas redes habrá conectado un sistema distinto.
+<ul>
+<li>LAN: A la red LAN se conectará un equipo de escritorio, en este caso, un equipo Kali Linux.</li>
+<li>DMZ: A la red DMZ se conectará un sistema ELK (Elasticserch, Logstash y Kibana).</li>
+<li>DMZ2: A la DMZ2 se conectará un Honeypot.</li>
+</ul>
+</li>
+</ul>
+<h2 id="montar-pfsense">Montar pfSense</h2>
+<p>Para montar el pfSense, primero se debe descargar la ISO del sistema operativo desde la página oficial de descargas: <a href="https://www.pfsense.org/download/">Descarga iso pfSense</a>.</p>
+<p>A continuación se crea una nueva máquina virtual en VirtualBox, añadiendo la iso en el apartado de <em>Almacenamiento</em>.</p>
+<p><img src="https://thumbs2.imgbox.com/85/6d/XVMmZ3Zg_t.png" alt="Configurando máquina virtual con PFSense"></p>
+<p>Posterior a esto, hay que ir al apartado de <em>Red</em>, para allí configurar las diferentes interfaces que se estarán utilizando.</p>
+<p><img src="https://thumbs2.imgbox.com/10/8a/3CBLltvD_t.png" alt="Configuración de Red VirtualBox"></p>
+<p>Una vez allí, se debe configurar de la siguiente forma:</p>
+<ul>
+<li>Adaptador 1:
+<ul>
+<li>Tipo: Adaptador Puente</li>
+<li>Nombre: <em>Nombre de la interfaz de red física del ordenador</em>.</li>
+</ul>
+</li>
+<li>Adaptador 2:
+<ul>
+<li>Tipo: Red Interna</li>
+<li>Nombre: LAN</li>
+</ul>
+</li>
+<li>Adaptador 3:
+<ul>
+<li>Tipo: Red Interna</li>
+<li>Nombre: DMZ</li>
+</ul>
+</li>
+<li>Adaptador 4:
+<ul>
+<li>Tipo: Red Interna</li>
+<li>Nombre: DMZ2</li>
+</ul>
+</li>
+</ul>
+<p>A continuación, se procede a encender la máquina. Una vez en la interfaz se deben llevar a cabo los siguientes pasos:</p>
+<ol>
+<li>Aceptar el acuerdo de Copyright.</li>
+<li>Presionar “OK” sobre la opción de <em>Install</em>.</li>
+<li>Seleccionar la distribución del teclado, luego presionar Enter.</li>
+<li>Presionar “OK” sobre la opción <em>Auto (ZFS)</em>.</li>
+<li>Seleccionar <em>Install</em>.</li>
+<li>Seleccionar <em>stripe</em> como tipo de dispositivo virtual.</li>
+<li>Seleccionar el disco duro y presionar Enter.</li>
+</ol>
+<p>Tras seguir estos pasos, hay que desconectar la iso de la maquina virtual y reiniciar el sistema operativo. Una vez se inicie nuevamente, se deben configurar las interfaces de red de la siguiente manera:</p>
+<ol>
+<li>En la interfaz se deben ver las 4 interfaces que ya hemos creado, como <em>em0</em>, <em>em1</em>, <em>em2</em> y <em>em3</em>.</li>
+<li>Seleccionamos la opción 1 para asignar las interfaces.</li>
+<li>Nos preguntará si queremos configurar las VLAN’s, indicamos que <strong>no</strong>.</li>
+<li>Luego nos preguntará por el nombre de las diferentes interfaces, a lo que debemos responder de la siguiente forma respectivamente:
+<ul>
+<li>WAN – em0</li>
+<li>LAN – em1</li>
+<li>OPT1 – em2</li>
+<li>OPT2 – em3</li>
+</ul>
+</li>
+<li>Luego indicamos <strong>y</strong> para continuar.</li>
+</ol>
+<p>Para este momento, se debería obtener un resultado similar a este:<br>
+<img src="https://thumbs2.imgbox.com/18/a5/Qy9VOTB0_t.png" alt="Configuración de interfaces pfSense"></p>
+<p>En este momento, WAN y LAN están en el mismo rango de IP’s, para cambiar esto hacemos lo siguiente:</p>
+<ol>
+<li>Seleccionamos la opción 2. para configurar IP’s.</li>
+<li>Ingresamos la IP 192.168.100.1.</li>
+<li>Ingresamos 24 como máscara de subnet.</li>
+<li>Ya que no queremos configurar una <em>puerta de enlace</em> ni una dirección <em>IPv6</em>, en estas dos preguntas solo presionamos Enter para saltarlas.</li>
+<li>Luego se nos pregunta por si se quiere habilitar el servidor <em>DHCP</em>, a lo que marcamos <strong>y</strong>.
+<ul>
+<li>Como IP de inicio del rango se ingresa 192.168.100.100</li>
+<li>Como fin se ingresa 192.168.100.200</li>
+</ul>
+</li>
+<li>Por último a la opción de configurar HTTP como el protocolo del webConfigurator se indica <strong>y</strong>.</li>
+</ol>
+<p>Al seguir el procedimiento anterior se obtiene:<br>
+<img src="https://thumbs2.imgbox.com/d8/fd/KeD0yNYT_t.png" alt="Configuración de interfaces pfSense"></p>
+<p>Ahora el pfSense ya es accesible desde la red <em>LAN</em>.</p>
+<h2 id="configurar-el-pfsense">Configurar el pfSense</h2>
+<p>En el apartado de configuración de <em>Red</em> de la máquina Kali Linux, hay que selecciónar la red interna <strong>LAN</strong>.<br>
+<img src="https://thumbs2.imgbox.com/01/4e/A4U2XhRA_t.png" alt="Kali Linux configuración de Red"></p>
+<p>Para configurar  el pfSense es necesario acceder a la interfaz web en la IP que hemos asignado a la interfaz LAN (<em>192.168.100.1</em>).<br>
+<img src="https://thumbs2.imgbox.com/46/ac/BKLGghBK_t.png" alt="Login de pfSense"></p>
+<p>Las credenciales de acceso son: <strong>admin</strong>, <strong>pfsense</strong>. En las siguientes capturas se muestra la configuración inicial del pfSense.<br>
+<img src="https://thumbs2.imgbox.com/d5/dc/57L1JWby_t.png" alt="Primer paso de configuracion pfSense"></p>
+<p><img src="https://thumbs2.imgbox.com/c9/7d/mjWZgkza_t.png" alt="Segundo paso configuración pfSense"></p>
+<p><img src="https://thumbs2.imgbox.com/03/51/sniiKli9_t.png" alt="enter image description here"><br>
+Es importante desmarcar las siguientes dos casillas<br>
+<img src="https://thumbs2.imgbox.com/c2/c3/vmsMRSHh_t.png" alt="enter image description here"></p>
+<p>Posteriormente se deben habilitar las demás interfaces.</p>
+<p><img src="https://thumbs2.imgbox.com/18/43/mDWrKTTU_t.png" alt="enter image description here"></p>
+<p>Además se deben cambiar los nombres de OPT1 y OPT2 por DMZ y DMZ2.</p>
+<h3 id="red-dmz">Red DMZ</h3>
+<p>Ahora hay que configurar la red <strong>DMZ</strong>. Para esto hay que desarrollar lo siguiente:</p>
+<ol>
+<li>Seleccionar “Static IPv4” como tipo de configuración de la IP.</li>
+<li>Asignar 192.168.90.1 como la IP de esta máquina, con una máscara de 24.</li>
+</ol>
+<p>A continuación, se debe configurar el servidor DHCP para servir IPs en la red DMZ. Para esto hay que dirigirse al apartado de servicios y entrar a <em>DHCP Server</em></p>
+<p><img src="https://thumbs2.imgbox.com/a8/47/JvDRKe4U_t.png" alt="DHCP Server"></p>
+<p>Una vez se habilita el servidor DHCP para la red DMZ, hay que indicar el rango de IPs, los servidores DNS y la puerta de enlace.</p>
+<p><img src="https://thumbs2.imgbox.com/7c/31/coQWjzRB_t.png" alt="Rango de IPs"><br>
+<img src="https://thumbs2.imgbox.com/4e/2d/GGR639AX_t.png" alt="Servidores DNS de la DMZ"><br>
+<img src="https://thumbs2.imgbox.com/ec/29/fHB8wqyr_t.png" alt="Gateway DMZ"></p>
+<p>En este momento, no se tiene acceso a internet desde la red DMZ, porque no se ha creado ninguna regla del Firewall de pfSense, por lo cual está bloqueando cualquier petición. Para permitir la conexión a internet hay que hacer lo siguiente:</p>
+<p>Se crea un separador para mantener un orden con las próximas reglas:<br>
+<img src="https://thumbs2.imgbox.com/a6/66/0Px6CThK_t.png" alt="separador firewall"></p>
+<p>Es necesario crear un alias del Firewall que incluya los puertos, hosts o URLs que queramos incluir en alguna regla.<br>
+<img src="https://thumbs2.imgbox.com/ef/ae/A27SF2l1_t.png" alt="enter image description here"></p>
+<p>Ahora sí es posible crear la regla que permita el acceso a Internet.<br>
+<img src="https://thumbs2.imgbox.com/45/e8/pFAdCMwP_t.png" alt="enter image description here"><br>
+<img src="https://thumbs2.imgbox.com/b2/34/WabjPBBe_t.png" alt="enter image description here"></p>
+<p>Además hay que crear otra relga que permita las peticiones al DNS. Para esto es posible duplicar la regla anterior, cambiar TCP por TPC/UDP y en los puertos de destino seleccionar los de DNS(53).</p>
+<p><img src="https://thumbs2.imgbox.com/d0/ef/aJX7XVYX_t.png" alt="enter image description here"></p>
+<h2 id="montar-elk">Montar ELK</h2>
+<p>El ELK se montará en una máquina Kali Linux, conectada a la red interna DMZ.</p>
+<p>Requerimientos:</p>
+<ul>
+<li>Docker</li>
+<li>Docker Compose</li>
+</ul>
+<h3 id="instalación-docker-y-docker-compose">Instalación docker y docker-compose</h3>
+<pre><code>sudo apt update
+sudo apt upgrade
+
+sudo apt install docker.io
+sudo apt install docker-compose
+</code></pre>
+<h3 id="descargar-y-montar-máquinas-del-elk">Descargar y montar máquinas del ELK</h3>
+<pre><code>git clone https://github.com/deviantony/docker-elk.git
+cd docker-elk
+
+sudo docker-compose up -d
+sudo docker-compose ps		# Para verificar que se hayan montado las imagenes
+</code></pre>
+<p>Al terminar el proceso anterior hay que acceder a la dirección <strong><a href="http://localhost:5601">http://localhost:5601</a></strong> donde hay un panel de inicio de sesión, hay que acceder con las credenciales <strong>elastic:changeme</strong>.</p>
+<p><img src="https://thumbs2.imgbox.com/7e/7d/Qd92eEMC_t.png" alt="inicio de sesion Elastic"></p>
+<p>Al ingresar nos encontraremos con el siguiente panel:</p>
+<p><img src="https://thumbs2.imgbox.com/77/61/FPe4k44c_t.png" alt="enter image description here"></p>
+<p>Ya teniendo las redes LAN y DMZ, y el ELK montado (en el Kali de DMZ), hay que configurar una VPN que permita la transmisión de los logs desde el Windows conectado a LAN hacia el ELK.</p>
+<h2 id="vpn-openvpn">VPN (OpenVPN)</h2>
+<h3 id="requerimientos">Requerimientos</h3>
+<ul>
+<li>Paquete “openvpn-client-export” de pfSense.</li>
+</ul>
+<h3 id="instalar-paquetes">Instalar paquetes</h3>
+<p>El primer paso para configurar la VPN es instalar el paquete <em>openvpn-client-export</em> en el pfSense, para esto hay que dirigirse al apartado de <strong>Package Manager</strong>, buscar el paquete, e instalarlo.</p>
+<p><img src="https://thumbs2.imgbox.com/66/91/f77bqtv2_t.png" alt="enter image description here"></p>
+<p><img src="https://thumbs2.imgbox.com/bf/03/pTu6rgmN_t.png" alt="enter image description here"></p>
+<h3 id="crear-ca-local">Crear CA local</h3>
+<p>Una vez teniendo el packete, hay que crear una CA (Certificate Authority) local para poder firmar los certificados que usará la VPN. En el apartado de <strong>Cert. Manager</strong> se debe seleccionar la opción de crear una nueva CA, y llenarlo con la siguiente información:</p>
+<p><img src="https://thumbs2.imgbox.com/7e/c8/FAtru0NG_t.png" alt="enter image description here"></p>
+<p>Datos a rellenar:</p>
+<p><img src="https://thumbs2.imgbox.com/a3/4d/50CdjRQi_t.png" alt="enter image description here"><br>
+<img src="https://thumbs2.imgbox.com/50/b7/HymK28LL_t.png" alt="enter image description here"></p>
+<h3 id="crear-certificado-para-la-vpn">Crear certificado para la VPN</h3>
+<p>Luego, en la pestaña de <strong>Certificates</strong>, hay que añadir un nuevo certificado para la VPN que se va a crear.</p>
+<p><img src="https://thumbs2.imgbox.com/74/ed/VMvAC5r3_t.png" alt="enter image description here"></p>
+<p>Debe contener la siguiente información:</p>
+<p><img src="https://thumbs2.imgbox.com/2c/13/VFxXpIY8_t.png" alt="enter image description here"><br>
+<img src="https://thumbs2.imgbox.com/12/29/yTI9SV3R_t.png" alt="enter image description here"><br>
+Es importante seleccionar <em>Server Certificate</em> en la sección de <strong>Certificate Type</strong>.</p>
+<p>Ya teniendo el certificado autofirmado, es posible crear la VPN.</p>
+<h3 id="configurar-openvpn">Configurar OpenVPN</h3>
+<p>Para hacer la configuración, hay que entrar al apartado <strong>OpenVPN</strong>, en la pestaña de <strong>Servers</strong> añadir uno nuevo y rellenar la información de la siguiente forma:</p>
+<p><em>Ubicación de OpenVPN</em><br>
+<img src="https://thumbs2.imgbox.com/6a/1a/rqMbERnx_t.png" alt="enter image description here"></p>
+<p><img src="https://thumbs2.imgbox.com/73/7b/vj4PIbXA_t.png" alt="enter image description here"><br>
+<img src="https://thumbs2.imgbox.com/3e/bd/YWAYHXHO_t.png" alt="enter image description here"></p>
+<p>En la casilla de <strong>Hardware Crypto</strong>, hay que seleccionar nuestro dispositivo de criptografía interno, para un rendimiento óptimo.<br>
+<img src="https://thumbs2.imgbox.com/c4/d0/wI12br7b_t.png" alt="enter image description here"><br>
+<img src="https://thumbs2.imgbox.com/96/f8/I5mh3Xrf_t.png" alt="enter image description here"></p>
+<p>Ya teniendo el OpenVPN configurado, hay que crear una regla en el Firewall, para que deje pasar el tráfico de este, que anteriormente asignamos al puerto 9458.</p>
+<h3 id="permitir-la-vpn-en-el-firewall">Permitir la VPN en el Firewall</h3>
+<p>Para esto hay que crear una regla en la interfaz <em>WAN</em> que permita el tráfico al Firewall por el puerto 9458.</p>
+<p><img src="https://thumbs2.imgbox.com/0c/b6/pMIi2Swi_t.png" alt="enter image description here"><br>
+<img src="https://thumbs2.imgbox.com/3c/44/LMlddZRM_t.png" alt="enter image description here"></p>
+<p>Contenido de la regla:</p>
+<p><img src="https://thumbs2.imgbox.com/84/ec/m8r2fLqB_t.png" alt="enter image description here"><br>
+<img src="https://thumbs2.imgbox.com/a2/3a/bIsczUoX_t.png" alt="enter image description here"></p>
+<p>Ahora, en la pestaña de <strong>OpenVPN</strong> dentro de las reglas del Firewall, hay que crear una que permita todo el tráfico por el protocolo IPv4 TCP. Esta es una regla muy insegura, y se usa solo con fines de hacer pruebas.</p>
+<p><img src="https://thumbs2.imgbox.com/64/58/4bRrUUue_t.png" alt="enter image description here"></p>
+<h3 id="crear-usuarios-para-la-vpn">Crear usuarios para la VPN</h3>
+<p>Para poder conectartse a la VPN creada, hay que crear unos usuarios a los cuales conectarse desde el agente de OpenVPN en los clientes. Para esto, hay que ir al apartado *<em>User Manager</em>, y añadir los nuevos usuarios.</p>
+<p>Para esta estructura, se deben crear al menos dos usuarios: <em>elk</em> y <em>windows</em>, que permitan la comunicación entre el ELK de DMZ y el Windows de LAN.</p>
+<p><img src="https://thumbs2.imgbox.com/85/fb/E59b6zAS_t.png" alt="enter image description here"></p>
+<p>Hay que elegir un nombre de usuario y una contraseña, es muy importante seleccionar la casilla que dice <em>Click to create a user certificate</em>, para certificar con nuestra CA interna al nuevo usuario.</p>
+<p><img src="https://thumbs2.imgbox.com/90/64/31V1WjYL_t.png" alt="enter image description here"><br>
+<img src="https://thumbs2.imgbox.com/ef/17/LbdjvvnD_t.png" alt="enter image description here"></p>
+<p>Siguiendo el anterior ejemplo se crean los usuarios <em>elk</em> y <em>windows</em>.</p>
+<p><img src="https://thumbs2.imgbox.com/93/07/Drlp1Uod_t.png" alt="enter image description here"></p>
+<h3 id="conectar-clientes-a-la-vpn">Conectar clientes a la VPN</h3>
+<h4 id="descargar-archivos-de-configuración">Descargar archivos de configuración</h4>
+<p>Para conectar las dos máquinas a la VPN, primero hay que descargar los archivos de configuración de formato <em>.ovpn</em> para cada usuario, desde el apartado <strong>OpenVPN/Client Export Utility</strong>.</p>
+<p><img src="https://thumbs2.imgbox.com/e4/9f/JIPiVvFQ_t.png" alt="enter image description here"></p>
+<p>Se debe seleccionar la opción de <em>Most Clients</em>.<br>
+<img src="https://thumbs2.imgbox.com/d6/e0/oy4KqDJF_t.png" alt="enter image description here"></p>
+<h4 id="conectar-clientes">Conectar clientes</h4>
+<p>Para conectarse a la VPN, tanto en el Windows como en Kali, hay que tener instalada la herramienta OpenVPN Connect que se puede descargar desde el siguiente enlace: <a href="https://openvpn.net/client-connect-vpn-for-windows/">OpenVPN Connect</a>. También se debe tener el respectivo archivo de configuración en cada máquina.</p>
+<h4 id="conectar-windows">Conectar Windows</h4>
+<p>Ya teniendo OpenVPN Connect, hay que localizar el archivo de configuración descargado de pfSense.</p>
+<p><img src="https://thumbs2.imgbox.com/04/0e/s2W9CshH_t.png" alt="enter image description here"></p>
+<p>Se debe mover a la dirección <strong>/OpenVPN/config</strong>.</p>
+<p><img src="https://thumbs2.imgbox.com/90/67/31IxOXm0_t.png" alt="enter image description here"></p>
+<p>Una vez hecho lo anterior, hay que iniciar el programa de OpenVPN Connect, que creará un icono en la barra de tareas, haciendo <em>Click derecho</em>, luego se debe presionar la opción de <em>Connect</em>.</p>
+<p><img src="https://thumbs2.imgbox.com/5b/d8/CFaZg7IY_t.png" alt="enter image description here"></p>
+<p>Se va a mostrar una interfaz, en la que se pedirá el <em>nombre de usuario</em> y la <em>contraseña</em>, en donde se deben ingresar las credenciales para el usuario <strong>windows</strong>.</p>
+<p><img src="https://thumbs2.imgbox.com/ad/b3/pH3sBr8F_t.png" alt="enter image description here"></p>
+<p>Si las credenciales ingresadas son correctas, debería salir una alerta como esta indicando la IP que se nos asignó (en todo caso esta ip se puede consultar usando el comando <em>ipconfig</em> en el CMD).</p>
+<p><img src="https://thumbs2.imgbox.com/94/ee/PUgM5aXb_t.png" alt="enter image description here"></p>
+<h4 id="conectar-kali-linux">Conectar Kali Linux</h4>
+<p>En Kali hay dos formas de conectarse, una por terminal, y otra de forma gráfica.</p>
+<p>Por terminal, hay que dirigirse a la dirección del archivo de configuración y ejecutar el comando:</p>
+<pre><code>sudo openvpn [nombre_del_archivo.ovpn]
+</code></pre>
+<p>Luego pedirá el <em>nombre de usuario</em> y la <em>contraseña</em>.</p>
+<p><img src="https://thumbs2.imgbox.com/1a/7c/aKnqUgXW_t.png" alt="enter image description here"></p>
+<p>La forma gráfica es la siguiente:</p>
+<ol>
+<li>En el icono de la conexión Ethernet/Internet del panel (barra de tareas), está la opción <strong>VPN Connections</strong>, ahí se selecciona <strong>Add a VPN connection</strong>.</li>
+</ol>
+<p><img src="https://thumbs2.imgbox.com/96/ea/KZmzwZyO_t.png" alt="enter image description here"></p>
+<ol start="2">
+<li>Se va a abrir una ventana preguntando por el <em>Tipo de Conexión VPN</em>, en donde se debe seleccionar <em>“Import a saved VPN configuration…”</em></li>
+</ol>
+<p><img src="https://thumbs2.imgbox.com/d1/42/iIjndBpt_t.png" alt="enter image description here"></p>
+<ol start="3">
+<li>Hay que buscar el archivo de configuración descargado de pfSense y seleccionarlo.</li>
+</ol>
+<p><img src="https://thumbs2.imgbox.com/10/83/Oop1UAwI_t.png" alt="enter image description here"></p>
+<ol start="4">
+<li>Se va a desplegar otra ventana, pidiendo entre otras cosas, por el <em>nombre de usuario</em> y la <em>contraseña</em>, aquí se deben ingresar las credenciales del usuario <strong>elk</strong>.</li>
+</ol>
+<p><img src="https://thumbs2.imgbox.com/49/dd/ZR66rBlb_t.png" alt="enter image description here"></p>
+<p>Una vez añadida la VPN, debería aparecer en la pestaña de <strong>VPN Connections</strong>, en donde solo hay que hacer <em>click</em> sobre la que se acaba de añadir.</p>
+<p><img src="https://thumbs2.imgbox.com/7e/57/mk2lh4k7_t.png" alt="enter image description here"></p>
+<p>Si la conexión ha sido satisfactoria, saldrá una alerta como esta indicandolo.</p>
+<p><img src="https://thumbs2.imgbox.com/93/2a/8KQMIBuj_t.png" alt="enter image description here"></p>
+<p>La IP asignada se puede consultar desde la terminal con el comando <em>ifconfig</em></p>
+<p><img src="https://thumbs2.imgbox.com/8f/f7/ank1XrkM_t.png" alt="enter image description here"></p>
+<h2 id="configurar-el-elastic-para-el-envío-de-logs">Configurar el Elastic para el envío de Logs</h2>
+<h3 id="configurar-el-elastic">Configurar el Elastic</h3>
+<p>A continuación los pasos para configurar el Elastic y conectarlo con el Windows para la injesta de Logs.</p>
+<ol>
+<li>
+<p>Acceder al panel montado en local del ELK, ubicado en <strong><a href="http://localhost:5601">http://localhost:5601</a></strong>, e ingresar con las credenciales <strong>elastic:changeme</strong>.</p>
+</li>
+<li>
+<p>En la zona de <em>Get started by adding integrations</em>, presionar el boton de <strong>Add integrations</strong></p>
+<p><img src="https://thumbs2.imgbox.com/5b/35/5Om8Gnrx_t.png" alt="enter image description here"></p>
+</li>
+<li>
+<p>Buscar por la integración de Windows.</p>
+<p><img src="https://thumbs2.imgbox.com/33/2c/n8l00228_t.png" alt="enter image description here"></p>
+</li>
+<li>
+<p>En la configuración, se deja todo por defecto, a excepción del último paso, en el que se selecciona la pestaña de <strong>Existing hosts</strong>, y en <strong>Agent policy</strong> se debe marcar la opción de <em>Fleet Server policy</em>.</p>
+<p><img src="https://thumbs2.imgbox.com/5b/2d/JibqoMEO_t.png" alt="enter image description here"></p>
+</li>
+<li>
+<p>Al guardar la configuración se debe seleccionar la opción de <em>Añadir un agente ahora</em>, se desplegará una ventana donde hay que entrar a la pestaña de <strong>Run standalone</strong> y de allí copiar al portapapeles la configuración del agente.</p>
+<p><img src="https://thumbs2.imgbox.com/bd/c0/EDnBOV7s_t.png" alt="enter image description here"><br>
+<img src="https://thumbs2.imgbox.com/c5/94/VbHwNC4K_t.png" alt="enter image description here"></p>
+</li>
+</ol>
+<h3 id="configurar-el-agente-de-windows">Configurar el agente de Windows</h3>
+<p>Para hacer la conexión, en windows hay que descargar el <em>agente de elastic</em>, de este enlace: <strong><a href="https://www.elastic.co/es/downloads/elastic-agent">Elastic Agent</a></strong></p>
+<p>Posteriormente, se debe descomprimir el <em>.zip</em>, y abrir el <strong>elastic-agent.yml</strong> con algún editor de texto. En este archivo hay que cambiar tres cosas:</p>
+<ol>
+<li>
+<p><strong>hosts</strong>: Hay que cambiar el que viene por defecto, y poner la IP que la VPN le asignó al Kali (es la que pertenece a la interfaz <em>tun</em>).<br>
+<img src="https://thumbs2.imgbox.com/8f/f7/ank1XrkM_t.png" alt="enter image description here"></p>
+</li>
+<li>
+<p><strong>username</strong>: Se debe poner el usuario <strong>elastic</strong>.</p>
+</li>
+<li>
+<p><strong>password</strong>: Se debe poner la contraseña <strong>changeme</strong>.</p>
+</li>
+</ol>
+<p>Al final quedará así:</p>
+<p><img src="https://thumbs2.imgbox.com/6e/53/Hvj8YvGd_t.png" alt="enter image description here"></p>
+<p>Una vez terminada esta configuración, se deben guardar los cambios, y desde una terminal abierta como <strong>Administrador</strong>, dirigirse a la ubicación donde se descargó el agente. Allí se ejecuta el programa.</p>
+<p><img src="https://thumbs2.imgbox.com/17/37/xpNnUf9o_t.png" alt="enter image description here"></p>
+<h2 id="visualizar-logs-de-windows-en-elastic">Visualizar Logs de Windows en Elastic</h2>
+<p>Al finalizar los pasos anteriores, ya se puede entrar en el paratado de <strong>Analytics</strong> de Elastic en el Kali y visualizar los Logs de Windows.</p>
+<p><img src="https://thumbs2.imgbox.com/db/a2/xml8zLS0_t.png" alt="enter image description here"></p>
+</div>
+</body>
+
+</html>
